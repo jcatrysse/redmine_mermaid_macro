@@ -23,7 +23,7 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 | After sync | n.v.t. |
 | Complexity (1 trivial .. 5 rewrite) | 1 |
 | Measured on | Redmine 7.0.1 (7.0-stable-GEOxyz + latest 7.0-stable), Rails 8.1.3.1, Ruby 3.3.6, PostgreSQL 16 and MariaDB 10.11 |
-| Branch head when this file was written | `a5002aa` |
+| Branch head when this file was written | `f5dd5d6` |
 
 ## Already on this branch
 
@@ -33,7 +33,7 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 
 In this order: things that break, security, the GEOxyz changes, the open items, then the checks.
 
-**Open items from the analysis** (Dutch; where they repeat a priority item, the priority item wins)
+**Open items from the analysis** (Dutch; where they conflict with a decision or a priority item above, those win)
 
 1. Plugin injects a second <script type=importmap> after Redmine 7's own import map and module script (base.html.erb:12 vs :17); works in browsers that merge multiple import maps (measured Chromium 141), fails silently elsewhere - test GEOxyz's browsers or import mermaid from the URL directly and drop the importmap hook
 2. lib/mermaid_macro_hook.rb defines view_layouts_base_html_head twice, so the plugin CSS never loads (pre-existing, cosmetic)
@@ -167,7 +167,9 @@ results quoted in the analysis come from it.
 - **5.1 compatibility**: prefer fixes that also run on Redmine 5.1 so they can be merged early;
   say so when a fix cannot.
 - **Git**: work on `redmine70-migration` only; never push to the default branch; never force-push
-  a branch someone else uses. Descriptive commit messages (what and why).
+  a branch someone else uses. Descriptive commit messages (what and why). Push after every
+  commit, together with the updated status in this file: a cloud session can stop at a usage
+  limit, and work that is not pushed is lost with its container.
 - **GitHub Actions**: manual only (`workflow_dispatch`). Do not add push, pull_request or schedule
   triggers.
 
