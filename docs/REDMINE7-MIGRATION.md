@@ -24,10 +24,13 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 | Complexity (1 trivial .. 5 rewrite) | 1 |
 | Measured on | Redmine 7.0.1 (7.0-stable-GEOxyz + latest 7.0-stable), Rails 8.1.3.1, Ruby 3.3.6, PostgreSQL 16 and MariaDB 10.11 |
 | Branch head when this file was written | `f5dd5d6` |
+| Migration result (2026-10-06) | work list done except items 3 and 4's 5.1 run (see below); tests and e2e green on PostgreSQL 16 and MariaDB 10.11 |
 
 ## Already on this branch
 
-- nothing: the branch equals the branch GEOxyz runs today.
+- Done 2026-10-06 (commits `6e7be13`, then the e2e commit): open items 1 and 2 (see below), first tests
+  (`test/unit/mermaid_macro_test.rb`), e2e scenarios `test/e2e/mermaid-macro.mjs` and `test/e2e/settings.mjs`
+  with seed `test/e2e/seed.rb`, screenshots in `docs/e2e/`.
 
 ## Work list for the migration session
 
@@ -35,15 +38,73 @@ In this order: things that break, security, the GEOxyz changes, the open items, 
 
 **Open items from the analysis** (Dutch; where they conflict with a decision or a priority item above, those win)
 
-1. Plugin injects a second <script type=importmap> after Redmine 7's own import map and module script (base.html.erb:12 vs :17); works in browsers that merge multiple import maps (measured Chromium 141), fails silently elsewhere - test GEOxyz's browsers or import mermaid from the URL directly and drop the importmap hook
-2. lib/mermaid_macro_hook.rb defines view_layouts_base_html_head twice, so the plugin CSS never loads (pre-existing, cosmetic)
-3. Mermaid comes from jsdelivr (floating mermaid@10); consider self-hosting
+1. **DONE** (`6e7be13`): the macro now does `import mermaid from <url>` (URL JSON-escaped, blank setting falls back to the default) and the import map hook is gone, so it no longer depends on browsers merging import maps. Test: `test_macro_imports_mermaid_from_the_configured_url_without_import_map`, `test_url_is_escaped_in_script`, e2e `mermaid-macro`. Original finding: Plugin injects a second <script type=importmap> after Redmine 7's own import map and module script (base.html.erb:12 vs :17); works in browsers that merge multiple import maps (measured Chromium 141), fails silently elsewhere - test GEOxyz's browsers or import mermaid from the URL directly and drop the importmap hook
+2. **DONE** (`6e7be13`): one `view_layouts_base_html_head`, the CSS link is in `<head>` again (`/assets/plugin_assets/redmine_mermaid_macro/redmine_mermaid_macro-<digest>.css`, HTTP 200 in the browser). Test: `test_layout_hook_loads_stylesheet_only`, e2e gantt step. Original finding: lib/mermaid_macro_hook.rb defines view_layouts_base_html_head twice, so the plugin CSS never loads (pre-existing, cosmetic)
+3. Mermaid comes from jsdelivr (floating mermaid@10); consider self-hosting.
+   **Deferred**: needs Jan's decision (see "Open questions for Jan"); default stays the CDN, the setting still allows any URL.
 
 **Checks**
 
-4. Run the plugin's whole test suite on Redmine 7.0-stable-GEOxyz with PostgreSQL AND MariaDB, and once on 5.1-stable if the branch is meant to stay 5.1-compatible.
-5. Check Redmine 7 webhooks against this plugin (see "Rules"), and note the result here even if nothing is needed.
-6. Verify every feature of the plugin by hand on a running Redmine 7 (screenshots).
+4. **DONE** except 5.1: Redmine 7.0-stable-GEOxyz (7.0.1, Rails 8.1.3.1, Ruby 3.3.6): PostgreSQL 16.15 `9 runs, 28 assertions, 0 failures, 0 errors, 0 skips`; MariaDB 10.11.14 the same numbers. The plugin has no migrations (nothing to run down/up) and no spec/. 5.1-stable was not run: its Gemfile needs Ruby < 3.3 and only 3.3.6 is available in this environment. The code uses nothing 5.1 lacks, but that is untested.
+5. **DONE**: webhooks. Core sends `issues/show.api.rsb` payloads. The plugin does not hide, add or change issue data and has no hook or patch on issues; the macro only renders HTML in the browser, the payload carries the raw `{{mermaid ...}}` description text. Nothing needed.
+6. **DONE**: see the inventory and the e2e numbers below.
+
+## Inventory of functions
+
+| function | how a user reaches it | scenario | screenshot (docs/e2e/) |
+|---|---|---|---|
+| `{{mermaid}}` macro in a wiki page | any wiki page | mermaid-macro | `mermaid-macro-wiki-page.png` |
+| macro in an issue description | issue show | mermaid-macro | `mermaid-macro-issue-description.png` |
+| macro in an issue note (journal) | issue edit, note | mermaid-macro | `mermaid-macro-issue-note.png` |
+| macro in the wiki editor Preview tab | wiki edit > Preview | mermaid-macro | `mermaid-macro-wiki-preview.png`, `-wiki-saved.png` |
+| invalid diagram (failure path) | any text field | mermaid-macro | `mermaid-macro-invalid-diagram.png` |
+| gantt diagram + plugin stylesheet | wiki | mermaid-macro | `mermaid-macro-gantt.png` |
+| visibility: reporter (no plugin permissions; the plugin has none), outsider, private project refused | wiki | mermaid-macro | `-reporter-wiki.png`, `-outsider-public.png`, `-outsider-private.png` |
+| plugin setting "Mermaid URL" | Administration > Plugins > Configure | settings | `settings-form-default.png`, `-restored.png` |
+| broken URL (failure path) and blank URL (fallback) | same | settings | `settings-broken-url.png`, `settings-blank-url-default.png` |
+| setting refused for non-admins | same | settings | `settings-refused-manager/reporter/outsider.png` |
+
+No permissions, menus, routes, API endpoints, rake tasks, cron jobs or mail handling exist. Macro help
+text (`desc`) is shown in the wiki toolbar help; unchanged.
+
+## E2E and test results (2026-10-06)
+
+| | PostgreSQL 16 | MariaDB 10.11 |
+|---|---|---|
+| minitest | 9 runs, 28 assertions, 0 failures | 9 runs, 28 assertions, 0 failures |
+| smoke (`.codex/e2e/smoke.mjs`) | 11 screenshots, 0 problems | 11, 0 |
+| core flows | 6 screenshots, 0 problems | 6, 0 |
+| `mermaid-macro` | 10 screenshots, 0 problems | 10, 0 |
+| `settings` | 7 screenshots, 0 problems | 7, 0 |
+
+Baseline before any change (PostgreSQL, production mode): smoke 11/0, core 6/0, no plugin tests.
+Browser: Chromium (Playwright 1.56), mermaid 10.9.8 from jsDelivr (reachable from the sandbox).
+"Before" pictures on 5.1 were not made: nothing changes visibly except the gantt CSS, and 5.1 cannot run here.
+Screenshots in `docs/e2e/` are from the PostgreSQL run; MariaDB screenshots were looked at in
+a scratch directory, not committed.
+
+OpenAI review: `docs/reviews/openai-2026-10-06-fb5883e.md` (gpt-5): no findings. Own review of the diff: no
+further findings (URL goes through `to_json`, which escapes quotes, `<`, `>` and `&`; diagram text goes through
+`content_tag`; blank setting is handled).
+
+## Open questions for Jan
+
+1. **Self-host mermaid?** Today every page view with a diagram loads mermaid from jsDelivr (floating `mermaid@10`,
+   currently 10.9.8). Options: (a) keep the CDN (done, default); (b) pin an exact version in the default URL
+   (`mermaid@10.9.8`), no code change; (c) vendor `mermaid.esm.min.mjs` plus its chunks under `assets/` (about
+   2 MB, privacy and availability win, but upgrades become manual). Recommendation: (b) now, (c) only if the
+   server must work without internet. Not changed because it alters what users get.
+2. **Mermaid 11?** The setting accepts a mermaid 11 URL, not tested. Recommendation: stay on 10.
+3. **Settings label "Mermaid URL" and the macro help text are English only** (the plugin ships no locales, as upstream).
+   Adding locale files would add keys in every shipped language; deferred, recommendation: leave.
+
+## Not testable here / left
+
+- Firefox, Safari, Edge not run (only Chromium). The fix removes the dependence on import map merging, so
+  only plain ES module support is needed.
+- Together with the other GEOxyz plugins: the migration kit's harness is not available here, not run.
+- Redmine 5.1 test run: see item 4.
+- A Content-Security-Policy, if GEOxyz sets one, must allow the inline module script and the mermaid host.
 
 ## GEOxyz changes to review or re-apply
 
@@ -53,7 +114,10 @@ None: this branch carries no GEOxyz commits of its own (upstream code only).
 
 Actions the person doing the upgrade must take, or know about, for this plugin:
 
-- None known. Add here what the session finds.
+- Nothing to migrate (no database changes, no settings changes). Existing stored `mermaid_url` keeps working.
+- Reverse proxy / CSP: if a Content-Security-Policy is set, `script-src` must allow the mermaid host
+  (default `cdn.jsdelivr.net`) and the inline module script the macro emits.
+- Users with very old browsers lacking ES module support never could see diagrams; unchanged.
 
 ## How to test
 
