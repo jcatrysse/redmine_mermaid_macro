@@ -38,6 +38,9 @@ You can configure `mermaid.js` URL on `Administration -> Plugins` page.
 Default value is jsDelivr CDN.
 https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs
 
+Mermaid 11 and 12 work too: set the URL to
+`https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs` (or `@12`). The default stays on 10.
+
 ## License
 
 [MIT](LICENSE)

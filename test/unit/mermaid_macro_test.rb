@@ -77,6 +77,12 @@ class MermaidMacroTest < Redmine::HelperTest
     assert_not_includes html, 'importmap'
   end
 
+  def test_settings_label_is_translated_for_en_nl_fr
+    {'en' => 'Mermaid URL', 'nl' => 'Mermaid-URL', 'fr' => 'URL de Mermaid'}.each do |lang, label|
+      assert_equal label, ::I18n.t(:label_mermaid_url, :locale => lang), lang
+    end
+  end
+
   private
 
   def assert_select_in(html, selector, equality)

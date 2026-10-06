@@ -45,7 +45,7 @@ In this order: things that break, security, the GEOxyz changes, the open items, 
 
 **Checks**
 
-4. **DONE** except 5.1: Redmine 7.0-stable-GEOxyz (7.0.1, Rails 8.1.3.1, Ruby 3.3.6): PostgreSQL 16.15 `9 runs, 28 assertions, 0 failures, 0 errors, 0 skips`; MariaDB 10.11.14 the same numbers. The plugin has no migrations (nothing to run down/up) and no spec/. 5.1-stable was not run: its Gemfile needs Ruby < 3.3 and only 3.3.6 is available in this environment. The code uses nothing 5.1 lacks, but that is untested.
+4. **DONE** except 5.1: Redmine 7.0-stable-GEOxyz (7.0.1, Rails 8.1.3.1, Ruby 3.3.6): PostgreSQL 16.15 `10 runs, 31 assertions, 0 failures, 0 errors, 0 skips`; MariaDB 10.11.14 the same numbers. The plugin has no migrations (nothing to run down/up) and no spec/. 5.1-stable was not run: its Gemfile needs Ruby < 3.3 and only 3.3.6 is available in this environment. The code uses nothing 5.1 lacks, but that is untested.
 5. **DONE**: webhooks. Core sends `issues/show.api.rsb` payloads. The plugin does not hide, add or change issue data and has no hook or patch on issues; the macro only renders HTML in the browser, the payload carries the raw `{{mermaid ...}}` description text. Nothing needed.
 6. **DONE**: see the inventory and the e2e numbers below.
 
@@ -71,11 +71,11 @@ text (`desc`) is shown in the wiki toolbar help; unchanged.
 
 | | PostgreSQL 16 | MariaDB 10.11 |
 |---|---|---|
-| minitest | 9 runs, 28 assertions, 0 failures | 9 runs, 28 assertions, 0 failures |
+| minitest | 10 runs, 31 assertions, 0 failures | 10 runs, 31 assertions, 0 failures |
 | smoke (`.codex/e2e/smoke.mjs`) | 11 screenshots, 0 problems | 11, 0 |
 | core flows | 6 screenshots, 0 problems | 6, 0 |
 | `mermaid-macro` | 10 screenshots, 0 problems | 10, 0 |
-| `settings` | 7 screenshots, 0 problems | 7, 0 |
+| `settings` | 16 screenshots, 0 problems | 16, 0 |
 
 Baseline before any change (PostgreSQL, production mode): smoke 11/0, core 6/0, no plugin tests.
 Browser: Chromium (Playwright 1.56), mermaid 10.9.8 from jsDelivr (reachable from the sandbox).
@@ -87,16 +87,16 @@ OpenAI review: `docs/reviews/openai-2026-10-06-fb5883e.md` (gpt-5): no findings.
 further findings (URL goes through `to_json`, which escapes quotes, `<`, `>` and `&`; diagram text goes through
 `content_tag`; blank setting is handled).
 
-## Open questions for Jan
+## Decided by Jan (2026-10-06, after the first report)
 
-1. **Self-host mermaid?** Today every page view with a diagram loads mermaid from jsDelivr (floating `mermaid@10`,
-   currently 10.9.8). Options: (a) keep the CDN (done, default); (b) pin an exact version in the default URL
-   (`mermaid@10.9.8`), no code change; (c) vendor `mermaid.esm.min.mjs` plus its chunks under `assets/` (about
-   2 MB, privacy and availability win, but upgrades become manual). Recommendation: (b) now, (c) only if the
-   server must work without internet. Not changed because it alters what users get.
-2. **Mermaid 11?** The setting accepts a mermaid 11 URL, not tested. Recommendation: stay on 10.
-3. **Settings label "Mermaid URL" and the macro help text are English only** (the plugin ships no locales, as upstream).
-   Adding locale files would add keys in every shipped language; deferred, recommendation: leave.
+1. Mermaid stays loaded from jsDelivr with the floating `mermaid@10` default: unchanged.
+2. Mermaid 11 (and 12) must work: tested. The setting accepts `.../mermaid@11/dist/mermaid.esm.min.mjs` (11.17.2 measured)
+   and `.../mermaid@12/dist/mermaid.esm.min.mjs` (12.x, `latest` on npm is 12.1.0): flowchart, sequence, gantt, invalid
+   diagram all render/report as with 10 (e2e `settings`, screenshots `settings-mermaid-11*.png`, `-12*.png`). The default
+   stays 10. v12 draws with a different default theme (visible difference, no breakage).
+3. Locales: `config/locales/en.yml`, `nl.yml`, `fr.yml` with `label_mermaid_url` (settings label); other languages fall
+   back to English (screenshot `settings-label-de.png`). The macro help text (`desc`) is registered at boot, before the
+   user's language is known, so it stays English like core's macro descriptions.
 
 ## Not testable here / left
 
