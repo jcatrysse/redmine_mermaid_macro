@@ -8,7 +8,7 @@ Redmine::Plugin.register :redmine_mermaid_macro do
   url 'https://github.com/taikii/redmine_mermaid_macro'
   author_url 'https://taikii.github.io'
 
-  settings :default => { 'mermaid_url' => 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs' },
+  settings :default => { 'mermaid_url' => MermaidMacroHook::DEFAULT_MERMAID_URL },
            :partial => 'settings/redmine_mermaid_macro_settings'
 
   Redmine::WikiFormatting::Macros.register do
@@ -24,7 +24,7 @@ Redmine::Plugin.register :redmine_mermaid_macro do
       divid = "mermaid_" + SecureRandom.urlsafe_base64(8)
 
       js = ""
-      js << "import mermaid from 'mermaid';\n"
+      js << "import mermaid from #{MermaidMacroHook.mermaid_url.to_json};\n"
       js << "mermaid.initialize({ startOnLoad: false });\n"
       js << "mermaid.run({querySelector: '##{divid}'});\n"
 
