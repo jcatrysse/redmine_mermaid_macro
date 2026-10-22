@@ -23,10 +23,19 @@ Redmine::Plugin.register :redmine_mermaid_macro do
     macro :mermaid do |obj, args, text|
       divid = "mermaid_" + SecureRandom.urlsafe_base64(8)
 
+      # A dynamic import, so that a mermaid.js that cannot be loaded (CDN blocked) shows a
+      # message above the diagram's source text instead of only the raw text.
+      url = MermaidMacroHook.mermaid_url
       js = ""
-      js << "import mermaid from #{MermaidMacroHook.mermaid_url.to_json};\n"
-      js << "mermaid.initialize({ startOnLoad: false });\n"
-      js << "mermaid.run({querySelector: '##{divid}'});\n"
+      js << "import(#{url.to_json}).then(({ default: mermaid }) => {\n"
+      js << "  mermaid.initialize({ startOnLoad: false });\n"
+      js << "  mermaid.run({querySelector: '##{divid}'});\n"
+      js << "}, () => {\n"
+      js << "  const message = document.createElement('p');\n"
+      js << "  message.className = 'flash warning mermaid-load-error';\n"
+      js << "  message.textContent = #{l(:text_mermaid_load_failed, url: url).to_json};\n"
+      js << "  document.getElementById('#{divid}').before(message);\n"
+      js << "});\n"
 
       out = ''.html_safe
       out << content_tag(:div, text, id: divid, class: 'mermaid')

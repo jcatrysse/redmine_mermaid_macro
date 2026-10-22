@@ -79,6 +79,21 @@ const cssLoaded = await t.page.evaluate(() => [...document.styleSheets].some(she
 if (!cssLoaded) t.problems.push('gantt: the plugin stylesheet rule ".mermaid rect.task" is not applied');
 await t.shot('gantt', 'A gantt diagram; its the plugin stylesheet rule for task bars is loaded');
 
+// 6c. mermaid.js cannot be loaded (CDN blocked): the source text stays, with a message why
+await t.page.route('**://cdn.jsdelivr.net/**', route => route.abort());
+await t.go(`/projects/${P}/wiki/Diagrams`);
+await t.page.waitForFunction(() => document.querySelectorAll('.wiki p.mermaid-load-error').length >= 2, null, { timeout: 15000 }).catch(() => {});
+const blocked = await t.page.evaluate(() => [...document.querySelectorAll('.wiki div.mermaid')].map(d => ({
+  message: d.previousElementSibling?.matches('p.flash.warning.mermaid-load-error') ? d.previousElementSibling.textContent : null,
+  svg: !!d.querySelector('svg'), text: d.textContent.trim(),
+})));
+if (blocked.length !== 2 || blocked.some(b => !b.message || !b.message.includes('mermaid.js could not be loaded from https://cdn.jsdelivr.net/') || b.svg || !b.text)) {
+  t.problems.push(`CDN blocked: expected a message above each of the 2 source texts, got ${JSON.stringify(blocked)}`);
+}
+t.check('CDN blocked');
+await t.shot('cdn-blocked', 'mermaid.js blocked (cdn.jsdelivr.net unreachable): each diagram shows a warning why, above its source text');
+await t.page.unroute('**://cdn.jsdelivr.net/**');
+
 // 7. reporter: member without the plugin's permissions (the macro has none)
 await t.login('reporter');
 await t.go(`/projects/${P}/wiki/Diagrams`);

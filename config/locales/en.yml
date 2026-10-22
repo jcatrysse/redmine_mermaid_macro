@@ -1,2 +1,3 @@
 en:
   label_mermaid_url: Mermaid URL
+  text_mermaid_load_failed: "The diagram cannot be shown: mermaid.js could not be loaded from %{url}. Below is the diagram's source text."

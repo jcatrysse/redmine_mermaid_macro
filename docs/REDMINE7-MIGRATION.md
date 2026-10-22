@@ -31,6 +31,12 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 - Done 2026-10-06 (commits `6e7be13`, then the e2e commit): open items 1 and 2 (see below), first tests
   (`test/unit/mermaid_macro_test.rb`), e2e scenarios `test/e2e/mermaid-macro.mjs` and `test/e2e/settings.mjs`
   with seed `test/e2e/seed.rb`, screenshots in `docs/e2e/`.
+- Done 2026-10-22, finding #25093 (Jan's decision: keep the CDN, add a visible message): mermaid.js is
+  loaded with a dynamic `import()`; when it cannot be loaded (CDN blocked, wrong URL) every diagram gets a
+  `p.flash.warning.mermaid-load-error` above its source text, "The diagram cannot be shown: mermaid.js could
+  not be loaded from <url>. Below is the diagram's source text." (en, nl, fr). A static `import` that fails
+  aborts the whole module, so nothing could show a message before. Mails keep the source text (no
+  JavaScript in mail clients), now said in the README.
 
 ## Work list for the migration session
 
@@ -86,6 +92,17 @@ a scratch directory, not committed.
 OpenAI review: `docs/reviews/openai-2026-10-06-fb5883e.md` (gpt-5): no findings. Own review of the diff: no
 further findings (URL goes through `to_json`, which escapes quotes, `<`, `>` and `&`; diagram text goes through
 `content_tag`; blank setting is handled).
+
+## Results 2026-10-22 (finding #25093, 7.0-stable-GEOxyz 578730a, PostgreSQL 16.15)
+
+| run | result |
+|---|---|
+| minitest before | 10 runs, 31 assertions, 0 failures |
+| minitest after | 13 runs, 55 assertions, 0 failures, 0 errors, 0 skips |
+| new and updated tests on the old code | 13 runs, 5 failures, 1 error (the 3 new tests, and the 3 that pinned the static `import mermaid from` and now pin `import(...)`) |
+| e2e, production mode | smoke 11/0, core 6/0, mermaid-macro 11/0, settings 16/0 (screenshots/problems) |
+| new e2e step on the old code | `CDN blocked: expected a message above each of the 2 source texts` (message null, raw text only) |
+| screenshots recommitted | `mermaid-macro-cdn-blocked.png` (new), `settings-broken-url.png` (the broken URL now shows the message); both looked at; the others unchanged, not recommitted |
 
 ## Decided by Jan (2026-10-06, after the first report)
 
