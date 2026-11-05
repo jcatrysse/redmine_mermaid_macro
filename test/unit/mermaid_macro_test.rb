@@ -110,6 +110,23 @@ class MermaidMacroTest < Redmine::HelperTest
     end
   end
 
+  def test_macro_does_not_mutate_a_string_literal
+    warnings = []
+    capture = Module.new do
+      define_method(:warn) { |message, **kwargs| warnings << message; nil }
+    end
+    previous = Warning[:deprecated]
+    Warning.singleton_class.prepend(capture)
+    Warning[:deprecated] = true
+    begin
+      render_macro
+    ensure
+      Warning[:deprecated] = previous
+      capture.send(:remove_method, :warn)
+    end
+    assert_equal [], warnings.grep(/literal string/)
+  end
+
   private
 
   def assert_select_in(html, selector, equality)

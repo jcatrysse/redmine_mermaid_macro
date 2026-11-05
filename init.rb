@@ -26,7 +26,7 @@ Redmine::Plugin.register :redmine_mermaid_macro do
       # A dynamic import, so that a mermaid.js that cannot be loaded (CDN blocked) shows a
       # message above the diagram's source text instead of only the raw text.
       url = MermaidMacroHook.mermaid_url
-      js = ""
+      js = +""
       js << "import(#{url.to_json}).then(({ default: mermaid }) => {\n"
       js << "  mermaid.initialize({ startOnLoad: false });\n"
       js << "  mermaid.run({querySelector: '##{divid}'});\n"

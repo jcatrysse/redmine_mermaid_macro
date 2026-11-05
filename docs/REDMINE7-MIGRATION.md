@@ -38,6 +38,8 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
   aborts the whole module, so nothing could show a message before. Mails keep the source text (no
   JavaScript in mail clients), now said in the README.
 
+- Done 2026-11-05: Ruby 4.0.9 (GEOxyz target). `init.rb` mutated a string literal (`js = ""` then `<<`), warning "literal string will be frozen in the future" (10 times in the suite with `RUBYOPT=-W:deprecated`); now `js = +""`, 0 warnings. Test `test_macro_does_not_mutate_a_string_literal` (red on the old line, green on the new). Suite 14 runs, 56 assertions, 0 failures on Ruby 4.0.9 and 3.3.6 (PostgreSQL 16). CI picks Ruby 4.0 for 7.0-stable*.
+
 ## Work list for the migration session
 
 In this order: things that break, security, the GEOxyz changes, the open items, then the checks.
